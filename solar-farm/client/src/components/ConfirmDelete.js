@@ -46,7 +46,9 @@ function ConfirmDelete() {
         <li>Row: {panel.row}</li>
         <li>Column: {panel.column}</li>
       </ul>
-      <button onClick={handleDelete}>Delete</button>
+      <button type="button" onClick={handleDelete}>
+        Delete
+      </button>
       <Link to="/list">Cancel</Link>
     </>
   );

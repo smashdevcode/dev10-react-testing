@@ -1,7 +1,5 @@
 package learn.solarfarm.controllers;
 
-import learn.solarfarm.data.DataAccessException;
-import learn.solarfarm.data.SolarPanelRepository;
 import learn.solarfarm.domain.ResultType;
 import learn.solarfarm.domain.SolarPanelResult;
 import learn.solarfarm.domain.SolarPanelService;
@@ -23,27 +21,17 @@ public class SolarPanelController {
     }
 
     @GetMapping
-    public List<SolarPanel> findAll() throws DataAccessException {
+    public List<SolarPanel> findAll() {
         return service.findAll();
     }
 
-//    @GetMapping
-//    public ResponseEntity<?> findAll() throws DataAccessException {
-//        try {
-//            List<SolarPanel> panels = service.findAll();
-//            return new ResponseEntity<>(panels, HttpStatus.OK);
-//        } catch (Exception ex) {
-//            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-
     @GetMapping("/section/{section}")
-    public List<SolarPanel> findBySection(@PathVariable String section) throws DataAccessException {
+    public List<SolarPanel> findBySection(@PathVariable String section) {
         return service.findBySection(section);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SolarPanel> findById(@PathVariable int id) throws DataAccessException {
+    public ResponseEntity<SolarPanel> findById(@PathVariable int id) {
         SolarPanel solarPanel = service.findById(id);
         if (solarPanel == null) {
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
@@ -52,7 +40,7 @@ public class SolarPanelController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody SolarPanel solarPanel) throws DataAccessException {
+    public ResponseEntity<?> create(@RequestBody SolarPanel solarPanel) {
         SolarPanelResult result = service.create(solarPanel);
         if (!result.isSuccess()) {
             return new ResponseEntity<>(result.getErrorMessages(), HttpStatus.BAD_REQUEST); // 400
@@ -61,7 +49,7 @@ public class SolarPanelController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable int id, @RequestBody SolarPanel solarPanel) throws DataAccessException {
+    public ResponseEntity<?> update(@PathVariable int id, @RequestBody SolarPanel solarPanel) {
         if (id != solarPanel.getId()) {
             return new ResponseEntity<>(HttpStatus.CONFLICT); // 409
         }
@@ -78,7 +66,7 @@ public class SolarPanelController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable int id) throws DataAccessException {
+    public ResponseEntity<Void> delete(@PathVariable int id) {
         SolarPanelResult result = service.deleteById(id);
         if (result.getResultType() == ResultType.NOT_FOUND) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404

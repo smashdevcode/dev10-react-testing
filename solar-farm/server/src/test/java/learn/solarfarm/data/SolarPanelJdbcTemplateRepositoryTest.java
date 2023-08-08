@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
@@ -35,7 +36,7 @@ class SolarPanelJdbcTemplateRepositoryTest {
     }
 
     @Test
-    void shouldFindAll() throws DataAccessException {
+    void shouldFindAll() {
         List<SolarPanel> result = repository.findAll();
         assertNotNull(result);
         assertTrue(result.size() >= 4);
@@ -53,20 +54,20 @@ class SolarPanelJdbcTemplateRepositoryTest {
     }
 
     @Test
-    void shouldFindBySection() throws DataAccessException {
+    void shouldFindBySection() {
         List<SolarPanel> result = repository.findBySection("The Ridge");
         assertNotNull(result);
         assertTrue(result.size() == 1 || result.size() == 2);
     }
 
     @Test
-    void shouldFindById() throws DataAccessException {
+    void shouldFindById() {
         SolarPanel result = repository.findById(1);
         assertNotNull(result);
     }
 
     @Test
-    void shouldCreate() throws DataAccessException {
+    void shouldCreate() {
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("East Hill");
         solarPanel.setRow(1);
@@ -84,7 +85,7 @@ class SolarPanelJdbcTemplateRepositoryTest {
     }
 
     @Test
-    void shouldUpdate() throws DataAccessException {
+    void shouldUpdate() {
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setId(2);
         solarPanel.setSection("East Ridge");
@@ -99,7 +100,7 @@ class SolarPanelJdbcTemplateRepositoryTest {
     }
 
     @Test
-    void shouldDelete() throws DataAccessException {
+    void shouldDelete() {
         assertTrue(repository.deleteById(5));
     }
 }

@@ -1,6 +1,5 @@
 package learn.solarfarm.domain;
 
-import learn.solarfarm.data.DataAccessException;
 import learn.solarfarm.data.SolarPanelRepository;
 import learn.solarfarm.models.Material;
 import learn.solarfarm.models.SolarPanel;
@@ -31,7 +30,7 @@ class SolarPanelServiceTest {
     SolarPanelRepository repository;
 
     @Test
-    void shouldFindTwoSolarPanelsForSectionOne() throws DataAccessException {
+    void shouldFindTwoSolarPanelsForSectionOne() {
         when(repository.findBySection("Section One")).thenReturn(List.of(
                 new SolarPanel(1, "Section One", 1, 1, 2020, Material.POLY_SI, true),
                 new SolarPanel(2, "Section One", 1, 2, 2020, Material.POLY_SI, true)
@@ -43,14 +42,14 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldFindSolarPanelWithAnIdOf1() throws DataAccessException {
+    void shouldFindSolarPanelWithAnIdOf1() {
         when(repository.findById(3)).thenReturn(new SolarPanel());
         SolarPanel solarPanel = service.findById(3);
         assertNotNull(solarPanel);
     }
 
     @Test
-    void shouldNotCreateNull() throws DataAccessException {
+    void shouldNotCreateNull() {
         // Arrange
         SolarPanel solarPanel = null;
 
@@ -64,7 +63,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotCreateNullSection() throws DataAccessException {
+    void shouldNotCreateNullSection() {
         // Arrange
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection(null);
@@ -82,7 +81,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotCreateEmptySection() throws DataAccessException {
+    void shouldNotCreateEmptySection() {
         // Arrange
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("");
@@ -100,7 +99,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotCreateNullMaterial() throws DataAccessException {
+    void shouldNotCreateNullMaterial() {
         // Arrange
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("Section One");
@@ -118,7 +117,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotCreateNonPositiveRow() throws DataAccessException {
+    void shouldNotCreateNonPositiveRow() {
         // Arrange
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("Section One");
@@ -136,7 +135,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotCreateGreaterThanMaxRow() throws DataAccessException {
+    void shouldNotCreateGreaterThanMaxRow() {
         // Arrange
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("Section One");
@@ -154,7 +153,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotCreateNonPositiveColumn() throws DataAccessException {
+    void shouldNotCreateNonPositiveColumn() {
         // Arrange
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("Section One");
@@ -172,7 +171,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotCreateGreaterThanMaxColumn() throws DataAccessException {
+    void shouldNotCreateGreaterThanMaxColumn() {
         // Arrange
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("Section One");
@@ -190,7 +189,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotCreateYearInstalledInTheFuture() throws DataAccessException {
+    void shouldNotCreateYearInstalledInTheFuture() {
         // Arrange
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("Section One");
@@ -209,7 +208,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotCreateNonUniqueSectionRowColumn() throws DataAccessException {
+    void shouldNotCreateNonUniqueSectionRowColumn() {
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("Section One");
         solarPanel.setRow(1);
@@ -229,7 +228,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotCreatePositiveId() throws DataAccessException {
+    void shouldNotCreatePositiveId() {
         SolarPanel solarPanel = new SolarPanel(1, "Section One", 1, 1, 2020,
                 Material.POLY_SI, true);
 
@@ -241,7 +240,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldCreate() throws DataAccessException {
+    void shouldCreate() {
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("Section One");
         solarPanel.setRow(1);
@@ -258,18 +257,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotUpdateEmptySection() throws DataAccessException {
-        SolarPanel solarPanel = new SolarPanel(1, "", 1, 1, 2020, Material.POLY_SI, true);
-
-        SolarPanelResult result = service.update(solarPanel);
-
-        assertFalse(result.isSuccess());
-        assertEquals(1, result.getErrorMessages().size());
-        assertTrue(result.getErrorMessages().get(0).contains("`section`"));
-    }
-
-    @Test
-    void shouldNotUpdateNonPositiveId() throws DataAccessException {
+    void shouldNotUpdateNonPositiveId() {
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setSection("Section One");
         solarPanel.setRow(1);
@@ -285,7 +273,18 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotUpdateNonExistentSolarPanel() throws DataAccessException {
+    void shouldNotUpdateEmptySection() {
+        SolarPanel solarPanel = new SolarPanel(1, "", 1, 1, 2020, Material.POLY_SI, true);
+
+        SolarPanelResult result = service.update(solarPanel);
+
+        assertFalse(result.isSuccess());
+        assertEquals(1, result.getErrorMessages().size());
+        assertTrue(result.getErrorMessages().get(0).contains("`section`"));
+    }
+
+    @Test
+    void shouldNotUpdateNonExistentSolarPanel() {
         SolarPanel solarPanel = new SolarPanel();
         solarPanel.setId(1000);
         solarPanel.setSection("Section One");
@@ -302,7 +301,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldUpdate() throws DataAccessException {
+    void shouldUpdate() {
         SolarPanel solarPanel = new SolarPanel(1, "Section One", 1, 1, 2020, Material.A_SI, true);
 
         when(repository.update(solarPanel)).thenReturn(true);
@@ -313,7 +312,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldNotDeleteNonExistentSolarPanel() throws DataAccessException {
+    void shouldNotDeleteNonExistentSolarPanel() {
         SolarPanelResult result = service.deleteById(1024);
 
         assertFalse(result.isSuccess());
@@ -322,7 +321,7 @@ class SolarPanelServiceTest {
     }
 
     @Test
-    void shouldDelete() throws DataAccessException {
+    void shouldDelete() {
         when(repository.deleteById(1)).thenReturn(true);
 
         SolarPanelResult result = service.deleteById(1);

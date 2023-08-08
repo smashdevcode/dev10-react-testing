@@ -1,6 +1,5 @@
 package learn.solarfarm.domain;
 
-import learn.solarfarm.data.DataAccessException;
 import learn.solarfarm.data.SolarPanelRepository;
 import learn.solarfarm.models.SolarPanel;
 import org.springframework.stereotype.Service;
@@ -22,19 +21,19 @@ public class SolarPanelService {
         return Year.now().getValue();
     }
 
-    public List<SolarPanel> findAll() throws DataAccessException {
+    public List<SolarPanel> findAll() {
         return repository.findAll();
     }
 
-    public List<SolarPanel> findBySection(String section) throws DataAccessException {
+    public List<SolarPanel> findBySection(String section) {
         return repository.findBySection(section);
     }
 
-    public SolarPanel findById(int id) throws DataAccessException {
+    public SolarPanel findById(int id) {
         return repository.findById(id);
     }
 
-    public SolarPanelResult create(SolarPanel solarPanel) throws DataAccessException {
+    public SolarPanelResult create(SolarPanel solarPanel) {
         SolarPanelResult result = validate(solarPanel);
 
         if (solarPanel != null && solarPanel.getId() > 0) {
@@ -49,7 +48,7 @@ public class SolarPanelService {
         return result;
     }
 
-    public SolarPanelResult update(SolarPanel solarPanel) throws DataAccessException {
+    public SolarPanelResult update(SolarPanel solarPanel) {
         SolarPanelResult result = validate(solarPanel);
 
         if (solarPanel.getId() <= 0) {
@@ -66,7 +65,7 @@ public class SolarPanelService {
         return result;
     }
 
-    public SolarPanelResult deleteById(int id) throws DataAccessException {
+    public SolarPanelResult deleteById(int id) {
         SolarPanelResult result = new SolarPanelResult();
         if (!repository.deleteById(id)) {
             result.addErrorMessage("SolarPanel id %s was not found.", ResultType.NOT_FOUND, id);
@@ -74,7 +73,7 @@ public class SolarPanelService {
         return result;
     }
 
-    private SolarPanelResult validate(SolarPanel solarPanel) throws DataAccessException {
+    private SolarPanelResult validate(SolarPanel solarPanel) {
         SolarPanelResult result = new SolarPanelResult();
 
         if (solarPanel == null) {

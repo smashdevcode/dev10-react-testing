@@ -2,7 +2,6 @@ package learn.solarfarm.data;
 
 import learn.solarfarm.models.Material;
 import learn.solarfarm.models.SolarPanel;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -39,7 +38,7 @@ public class SolarPanelJdbcTemplateRepository implements SolarPanelRepository {
     };
 
     @Override
-    public List<SolarPanel> findAll() throws DataAccessException {
+    public List<SolarPanel> findAll() {
 
         final String sql = "select id, section, `row`, `column`, year_installed, material, is_tracking " +
                 "from solar_panel " +
@@ -49,7 +48,7 @@ public class SolarPanelJdbcTemplateRepository implements SolarPanelRepository {
     }
 
     @Override
-    public List<SolarPanel> findBySection(String section) throws DataAccessException {
+    public List<SolarPanel> findBySection(String section) {
 
         // SQL injection
         // '; drop table solar_panel;
@@ -68,7 +67,7 @@ public class SolarPanelJdbcTemplateRepository implements SolarPanelRepository {
     }
 
     @Override
-    public SolarPanel findById(int id) throws DataAccessException {
+    public SolarPanel findById(int id) {
         final String sql = "select id, section, `row`, `column`, year_installed, material, is_tracking " +
                 "from solar_panel " +
                 "where id = ?";
@@ -84,7 +83,7 @@ public class SolarPanelJdbcTemplateRepository implements SolarPanelRepository {
     }
 
     @Override
-    public SolarPanel create(SolarPanel solarPanel) throws DataAccessException {
+    public SolarPanel create(SolarPanel solarPanel) {
 
         final String sql = "insert into solar_panel (section, `row`, `column`, year_installed, material, is_tracking) " +
                 "values (?, ?, ?, ?, ?, ?);";
@@ -111,7 +110,7 @@ public class SolarPanelJdbcTemplateRepository implements SolarPanelRepository {
     }
 
     @Override
-    public boolean update(SolarPanel solarPanel) throws DataAccessException {
+    public boolean update(SolarPanel solarPanel) {
         final String sql = "update solar_panel set " +
                 "section = ?, " +
                 "`row` = ?, " +
@@ -134,7 +133,7 @@ public class SolarPanelJdbcTemplateRepository implements SolarPanelRepository {
     }
 
     @Override
-    public boolean deleteById(int id) throws DataAccessException {
+    public boolean deleteById(int id) {
         final String sql = "delete from solar_panel where id = ?;";
         return jdbcTemplate.update(sql, id) > 0;
     }
