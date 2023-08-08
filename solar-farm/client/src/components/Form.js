@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 
+import Errors from './Errors';
+
 function Form() {
   const params = useParams();
   const navigate = useNavigate();
@@ -98,11 +100,7 @@ function Form() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <ul>
-        {errors.map((error) => (
-          <li key={error}>{error}</li>
-        ))}
-      </ul>
+      <Errors errors={errors} />
 
       <fieldset>
         <label htmlFor="section-input">Section: </label>

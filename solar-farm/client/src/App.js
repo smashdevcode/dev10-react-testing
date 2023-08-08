@@ -1,16 +1,16 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
+import ConfirmDelete from './components/ConfirmDelete';
+import Header from './components/Header';
+import Form from './components/Form';
 import List from './components/List';
 import Nav from './components/Nav';
-import Form from './components/Form';
-import ConfirmDelete from './components/ConfirmDelete';
 
 function App() {
   return (
-    <BrowserRouter>
-      <h1>Welcome to Solar farm!</h1>
+    <Router>
+      <Header />
       <Nav />
-
       <Routes>
         <Route path="/" element={<p>Click a link to get started!</p>} />
         <Route path="/list" element={<List />} />
@@ -19,7 +19,7 @@ function App() {
         <Route path="/delete/:id" element={<ConfirmDelete />} />
         <Route path="*" element={<p>Page not found.</p>} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 
