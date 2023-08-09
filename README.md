@@ -20,7 +20,7 @@ import '@testing-library/jest-dom';
 
 Now add a `Header.test.js` file as a sibling to the `Header.js` component file:
 
-**Header.test.js**
+**src/components/Header.test.js**
 
 ```js
 import { render, screen } from '@testing-library/react';
@@ -35,7 +35,9 @@ describe('Header', () => {
 });
 ```
 
-> _Note: If you have ESLint configured, it'll complain about not being able to find the `it` and `expect` functions. To fix these linting errors, we need to add `"jest": true` to the `.eslintrc.json` configuration:_
+> _Note: If you have ESLint configured, it'll complain about not being able to find the `it` and `expect` functions. To fix these linting errors, we need to add `"jest": true` to the `.eslintrc.json` configuration file:_
+
+**.eslintrc.json**
 
 ```json
 {
@@ -85,6 +87,8 @@ Our test follows the basic structure of any unit test:
 
 You can also select an element by its role:
 
+**src/components/Header.test.js**
+
 ```js
 import { render, screen } from '@testing-library/react';
 import Header from './Header';
@@ -128,7 +132,7 @@ React Testing Library (or any of the `@testing-library` family of packages) help
 
 Start with this `Errors` component:
 
-**Errors.js**
+**src/components/Errors.js**
 
 ```js
 function Errors({ errors }) {
@@ -155,7 +159,7 @@ Then test that the `Errors` component:
 
 > `screen.debug()` will print the what is currently rendered to the screen.
 
-**Errors.js**
+**src/components/Errors.js**
 
 ```js
 function Errors({ errors }) {
@@ -178,7 +182,7 @@ function Errors({ errors }) {
 export default Errors;
 ```
 
-**Errors.test.js**
+**src/components/Errors.test.js**
 
 ```js
 import { render, screen } from '@testing-library/react';
@@ -229,6 +233,8 @@ describe('Errors', () => {
 
 Now let's test the `Nav` component.
 
+**src/components/Nav.js**
+
 ```js
 import { Link } from 'react-router-dom';
 
@@ -252,6 +258,8 @@ function Nav() {
 
 export default Nav;
 ```
+
+**src/components/Nav.test.js**
 
 ```js
 import { render, screen } from '@testing-library/react';
@@ -279,6 +287,8 @@ TypeError: Cannot destructure property 'basename' of 'React__namespace.useContex
 
 In order to render a `Link`, our component must be a child of a React Router context provider. The recommended way of doing that within a test, is to use `MemoryRouter`:
 
+**src/components/Nav.test.js**
+
 ```js
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -305,6 +315,8 @@ describe('Nav', () => {
 We've checked that the `Nav` renders three links, but how can we determine if those links are the ones that we expect?
 
 Testing Library gives an interesting and powerful method, `screen.logTestingPlaygroundURL()`, that allows us to interact with what is currently rendered to the screen and to determine what queries would work best.
+
+**src/components/Nav.test.js**
 
 ```js
 import { render, screen } from '@testing-library/react';
@@ -341,6 +353,8 @@ describe('Nav', () => {
 ```
 
 Clicking on the "Home" link, we can see that the testing playground is recommending that we use `getByRole` with the `name` option defined.
+
+**src/components/Nav.test.js**
 
 ```js
 import { render, screen } from '@testing-library/react';
