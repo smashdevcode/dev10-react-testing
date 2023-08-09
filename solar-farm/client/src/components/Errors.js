@@ -4,11 +4,14 @@ function Errors({ errors }) {
   }
 
   return (
-    <ul>
-      {errors.map((error) => (
-        <li key={error}>{error}</li>
-      ))}
-    </ul>
+    <div>
+      <p>The following errors were found:</p>
+      <ul>
+        {errors.map((error) => (
+          <li key={error}>{error}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

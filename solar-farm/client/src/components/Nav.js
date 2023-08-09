@@ -3,8 +3,17 @@ import { Link } from 'react-router-dom';
 function Nav() {
   return (
     <nav>
-      <Link to="/">Home</Link> <Link to="/list">View Panels</Link>{' '}
-      <Link to="/add">Add a Panel</Link>
+      <ul>
+        <li>
+          <Link to="/">Home</Link>
+        </li>
+        <li>
+          <Link to="/list">View Panels</Link>
+        </li>
+        <li>
+          <Link to="/add">Add a Panel</Link>
+        </li>
+      </ul>
     </nav>
   );
 }

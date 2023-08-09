@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 function List() {
-  const [panels, setPanels] = useState([]);
+  const [panels, setPanels] = useState(null);
 
   const loadPanels = () => {
     fetch('http://localhost:8080/api/solarpanel')
@@ -11,6 +11,14 @@ function List() {
   };
 
   useEffect(loadPanels, []); // call my callback function when the component loads
+
+  if (panels === null) {
+    return <p>Loading...</p>;
+  }
+
+  if (panels.length === 0) {
+    return <p>No panels to display.</p>;
+  }
 
   return (
     <table>
