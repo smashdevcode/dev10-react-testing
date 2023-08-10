@@ -5,7 +5,6 @@ import {
   waitForElementToBeRemoved,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { setupServer } from 'msw/node';
 import { rest } from 'msw';
 import server from '../test/server';
 
@@ -20,13 +19,13 @@ function renderComponent() {
   );
 }
 
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
+
 describe('List', () => {
-  beforeAll(() => server.listen());
-
-  afterEach(() => server.resetHandlers());
-
-  afterAll(() => server.close());
-
   it('should render a table row for each panel', async () => {
     renderComponent();
 
@@ -72,9 +71,7 @@ describe('List', () => {
       expect(deleteLink).toHaveAttribute('href', `/delete/${panels[index].id}`);
     });
   });
-});
 
-describe('List', () => {
   it('should initially render a loading message', () => {
     renderComponent();
 
@@ -84,19 +81,16 @@ describe('List', () => {
   });
 
   it('should render no records found message when panels are not returned from the API', async () => {
-    const testServer = setupServer(
+    server.use(
       rest.get('http://localhost:8080/api/solarpanel', (_req, res, ctx) => {
         return res(ctx.json([]));
       })
     );
-    testServer.listen();
 
     renderComponent();
 
     const noPanelsMessage = await screen.findByText(/no panels to display/i);
 
     expect(noPanelsMessage).toBeInTheDocument();
-
-    testServer.close();
   });
 });
