@@ -11,6 +11,12 @@
   },
   "rules": {
     "comma-dangle": 0,
+    "import/no-extraneous-dependencies": [
+      "error", 
+      {
+        "devDependencies": true
+      }
+    ],
     "jsx-a11y/label-has-associated-control": 0,
     "linebreak-style": 0,
     "prettier/prettier": [
