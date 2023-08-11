@@ -406,3 +406,610 @@ describe('Nav', () => {
 ```
 
 Notice that we defined a `renderComponent()` function to DRY up our code a bit.
+
+## React Testing Part 2
+
+### Testing a Component That Requires an API
+
+Now let's try testing the `List` component.
+
+**src/components/List.test.js**
+
+```js
+import { render, screen } from '@testing-library/react';
+import List from './List';
+
+describe('List', () => {
+  it('should render a table row for each panel', () => {
+    render(<List />);
+
+    screen.debug();
+  });
+});
+```
+
+`screen.debug()` produces the following output:
+
+```html
+console.log
+  <body>
+    <div>
+      <table>
+        <thead>
+          <tr>
+            <th>
+              ID
+            </th>
+            <th>
+              Section
+            </th>
+            <th>
+              Row
+            </th>
+            <th>
+              Column
+            </th>
+            <th>
+              Material
+            </th>
+            <th>
+              Year Installed
+            </th>
+            <th>
+              Is Tracking?
+            </th>
+            <th>
+              Edit?
+            </th>
+            <th>
+              Delete?
+            </th>
+          </tr>
+        </thead>
+        <tbody />
+      </table>
+    </div>
+  </body>
+```
+
+Where are the panels? If we look at the component, we can see that it's using `fetch` to retrieve the list of panels:
+
+**src/components/List.js**
+
+```js
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+
+function List() {
+  const [panels, setPanels] = useState([]);
+
+  const loadPanels = () => {
+    fetch('http://localhost:8080/api/solarpanel')
+      .then((response) => response.json())
+      .then((payload) => setPanels(payload));
+  };
+
+  useEffect(loadPanels, []); // call my callback function when the component loads
+
+  return (
+    <table>
+     {/* snip! */}
+    </table>
+  );
+}
+
+export default List;
+```
+
+To test the `List` component, we need to mock the API.
+
+Start with installing [Mock Service Worker](https://www.npmjs.com/package/msw) as a dev dependency:
+
+```
+npm install msw --save-dev
+```
+
+How does MSW work? From MSW's documentation:
+
+_"In-browser usage is what sets Mock Service Worker apart from other tools. Utilizing the Service Worker API, which can intercept requests for the purpose of caching, Mock Service Worker responds to captured requests with your mock definition on the network level. This way your application knows nothing about the mocking."_
+
+We're not using MSW within the browser, but it still works the same within our tests by intercept requests at the network level. This means that we don't need to mock `fetch` or make any changes to our component code.
+
+Now that we have the package installed, let's create a directory in `src` called `test`, and inside `test` a file called `server.js`, where we'll put the code for our mock testing server.
+
+**src/test/server.js**
+
+```js
+import { setupServer } from 'msw/node';
+
+const server = setupServer();
+
+export default server;
+```
+
+_Note: To keep ESLint from complaining about the import from `devDependencies`, add this rule to your `.eslintrc.json` file:_
+
+**.eslintrc.json**
+
+```json
+"import/no-extraneous-dependencies": [
+  "error", 
+  {
+    "devDependencies": true
+  }
+]
+```
+
+We need to configure the server to return the JSON for the panels when a GET request is made to `http://localhost:8080/api/solarpanel`. We can use our actual server to get the JSON by starting the backend in IntelliJ and using REST Client in VS Code to send an HTTP request.
+
+With the panels JSON in hand, add a file named `panels.json` to the `src/test` folder:
+
+**src/test/panels.json**
+
+```json
+[
+  {
+    "id": 3,
+    "section": "Flats",
+    "row": 1,
+    "column": 1,
+    "yearInstalled": 2017,
+    "material": "A_SI",
+    "tracking": true
+  },
+  {
+    "id": 4,
+    "section": "Flats",
+    "row": 2,
+    "column": 6,
+    "yearInstalled": 2017,
+    "material": "CD_TE",
+    "tracking": true
+  },
+  {
+    "id": 5,
+    "section": "Flats",
+    "row": 3,
+    "column": 7,
+    "yearInstalled": 2000,
+    "material": "CIGS",
+    "tracking": false
+  },
+  {
+    "id": 1,
+    "section": "The Ridge",
+    "row": 1,
+    "column": 1,
+    "yearInstalled": 2020,
+    "material": "POLY_SI",
+    "tracking": true
+  },
+  {
+    "id": 2,
+    "section": "The Ridge",
+    "row": 1,
+    "column": 2,
+    "yearInstalled": 2019,
+    "material": "MONO_SI",
+    "tracking": true
+  }
+]
+```
+
+Then update the `server.js` file:
+
+**src/test/server.js**
+
+```js
+import { setupServer } from 'msw/node';
+import { rest } from 'msw';
+import panels from './panels.json';
+
+const BASE_URL = 'http://localhost:8080/api/solarpanel';
+
+const server = setupServer(
+  rest.get(BASE_URL, (_req, res, ctx) => {
+    return res(ctx.json(panels));
+  })
+);
+
+export default server;
+```
+
+The `rest.get()` method accepts a URL as the first argument, and a request resolver as the second argument. The request resolver is a function defined with three parameters:
+
+* `req` contains information about the request (such as request parameters, which we'll investigate later)
+* `res` allows us to create a mocked response
+* `ctx` helps us create context for the mocked response, such as a status code, headers, and body.
+
+Next, we need to integrate the mock server into our test:
+
+**src/components/List.test.js**
+
+```js
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import server from '../test/server';
+import List from './List';
+
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
+
+function renderComponent() {
+  render(
+    <MemoryRouter>
+      <List />
+    </MemoryRouter>
+  );
+}
+
+describe('List', () => {
+  it('should render a table row for each panel', async () => {
+    renderComponent();
+
+    // This doesn't work as the <table> element is rendered regardless if data has been loaded or not.
+    // const table = await screen.findByRole('table');
+    // expect(table).toBeInTheDocument();
+
+    const editLinks = await screen.findAllByRole('link', {
+      name: /edit/i,
+    });
+    expect(editLinks).toHaveLength(5);
+
+    screen.debug();
+  });
+});
+```
+
+Notice the use of `beforeAll()`, `beforeEach()`, and `afterAll()` to manage the mock server:
+
+```js
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
+```
+
+Also notice that we need to make our `it` callback method `async` so that we can `await` the `findAllByRole()` method call. The `findBy` query methods return a Promise, so they can be awaited. They also keep querying for an element (i.e. retrying) every `50ms` until `1000ms` has elapsed.
+
+For more information about Testing Library's async API, see: https://testing-library.com/docs/dom-testing-library/api-async
+
+If we update the `List` component to render an initial "Loading..." message, we can update our test to wait for that message to disappear (removed from the DOM) before we attempt to query and assert an expectations about the table of panels.
+
+**src/components/List.js**
+
+```js
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+
+function List() {
+  const [panels, setPanels] = useState(null);
+
+  const loadPanels = () => {
+    fetch('http://localhost:8080/api/solarpanel')
+      .then((response) => response.json())
+      .then((payload) => setPanels(payload));
+  };
+
+  useEffect(loadPanels, []); // call my callback function when the component loads
+
+  if (panels === null) {
+    return <p>Loading...</p>;
+  }
+
+  if (panels.length === 0) {
+    return <p>No panels to display.</p>;
+  }
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Section</th>
+          <th>Row</th>
+          <th>Column</th>
+          <th>Material</th>
+          <th>Year Installed</th>
+          <th>Is Tracking?</th>
+          <th>Edit?</th>
+          <th>Delete?</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {panels.map((panel) => (
+          <tr key={panel.id}>
+            <td>{panel.id}</td>
+            <td>{panel.section}</td>
+            <td>{panel.row}</td>
+            <td>{panel.column}</td>
+            <td>{panel.material}</td>
+            <td>{panel.yearInstalled}</td>
+            <td>{panel.tracking ? 'Yes' : 'No'}</td>
+            <td>
+              <Link to={`/edit/${panel.id}`}>Edit</Link>
+            </td>
+            <td>
+              <Link to={`/delete/${panel.id}`}>Delete</Link>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+export default List;
+```
+
+**src/components/List.test.js**
+
+```js
+import {
+  render,
+  screen,
+  waitForElementToBeRemoved,
+} from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import server from '../test/server';
+import List from './List';
+
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
+
+function renderComponent() {
+  render(
+    <MemoryRouter>
+      <List />
+    </MemoryRouter>
+  );
+}
+
+describe('List', () => {
+  it('should render a table row for each panel', async () => {
+    renderComponent();
+
+    await waitForElementToBeRemoved(() => screen.queryByText(/loading/i));
+
+    screen.debug();
+  });
+});
+```
+
+The `waitForElementToBeRemoved()` method will return when the specified element has been removed from the document.
+
+Here's what a complete test that checks the content of each table row, including the table header row, might look like:
+
+**src/components/List.test.js**
+
+```js
+import {
+  getByRole,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+} from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import server from '../test/server';
+
+import List from './List';
+import panels from '../test/panels.json';
+
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
+
+function renderComponent() {
+  render(
+    <MemoryRouter>
+      <List />
+    </MemoryRouter>
+  );
+}
+
+describe('List', () => {
+  it('should render a table row for each panel', async () => {
+    renderComponent();
+
+    await waitForElementToBeRemoved(() => screen.queryByText(/loading/i));
+
+    const tableRows = screen.getAllByRole('row');
+
+    expect(tableRows).toHaveLength(6); // 5 rows (one per panel) plus header row
+
+    // Remove the header row.
+    const headerRow = tableRows.shift();
+
+    expect(headerRow.children.item(0)).toHaveTextContent(/id/i);
+    expect(headerRow.children.item(1)).toHaveTextContent(/section/i);
+    expect(headerRow.children.item(2)).toHaveTextContent(/row/i);
+    expect(headerRow.children.item(3)).toHaveTextContent(/column/i);
+    expect(headerRow.children.item(4)).toHaveTextContent(/material/i);
+    expect(headerRow.children.item(5)).toHaveTextContent(/year installed/i);
+    expect(headerRow.children.item(6)).toHaveTextContent(/is tracking\?/i);
+    expect(headerRow.children.item(7)).toHaveTextContent(/edit\?/i);
+    expect(headerRow.children.item(8)).toHaveTextContent(/delete\?/i);
+
+    // Now check that each of the panel rows contains the expected content...
+    tableRows.forEach((row, index) => {
+      expect(row.children.item(0)).toHaveTextContent(panels[index].id);
+      expect(row.children.item(1)).toHaveTextContent(panels[index].section);
+      expect(row.children.item(2)).toHaveTextContent(panels[index].row);
+      expect(row.children.item(3)).toHaveTextContent(panels[index].column);
+      expect(row.children.item(4)).toHaveTextContent(panels[index].material);
+      expect(row.children.item(5)).toHaveTextContent(
+        panels[index].yearInstalled
+      );
+      expect(row.children.item(6)).toHaveTextContent(
+        panels[index].tracking ? /yes/i : /no/i
+      );
+
+      const editLink = getByRole(row, 'link', { name: /edit/i });
+      expect(editLink).toBeInTheDocument();
+      expect(editLink).toHaveAttribute('href', `/edit/${panels[index].id}`);
+
+      const deleteLink = getByRole(row, 'link', { name: /delete/i });
+      expect(deleteLink).toBeInTheDocument();
+      expect(deleteLink).toHaveAttribute('href', `/delete/${panels[index].id}`);
+    });
+  });
+});
+```
+
+Let's also write tests to check that:
+
+* A "loading" message is displayed initially
+* A "no records" message is displayed if there are no records
+
+For the first test, we can use `getByText()` to check if the `List` component initially renders the "loading" message. This works because `getByText()` synchronously checks the DOM for the matching text before the `fetch` method call is completed.
+
+**src/components/List.test.js**
+
+```js
+it('should initially render a loading message', () => {
+  renderComponent();
+
+  const loading = screen.getByText(/loading/i);
+
+  expect(loading).toBeInTheDocument();
+});
+```
+
+For the second test, we need to override the mock server request handler to return an empty array to simulate a "no results" or "no records" response. We can do that by calling the [MSW `server.use()` method](https://mswjs.io/docs/api/setup-server/use) and providing an "override" to the `GET /api/solarpanel` endpoint:
+
+**src/components/List.test.js**
+
+```js
+it('should render no records found message when panels are not returned from the API', async () => {
+  server.use(
+    rest.get('http://localhost:8080/api/solarpanel', (_req, res, ctx) => {
+      return res(ctx.json([]));
+    })
+  );
+
+  renderComponent();
+
+  const noPanelsMessage = await screen.findByText(/no panels to display/i);
+
+  expect(noPanelsMessage).toBeInTheDocument();
+});
+```
+
+This request handler will be removed when the [MSW `server.resetHandlers()` method](https://mswjs.io/docs/api/setup-server/reset-handlers) is called in the `afterEach()` method:
+
+```js
+afterEach(() => server.resetHandlers());
+```
+
+Here's the completed `List.test.js` test file:
+
+**src/components/List.test.js**
+
+```js
+import {
+  getByRole,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+} from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { rest } from 'msw';
+import server from '../test/server';
+
+import List from './List';
+import panels from '../test/panels.json';
+
+function renderComponent() {
+  render(
+    <MemoryRouter>
+      <List />
+    </MemoryRouter>
+  );
+}
+
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
+
+describe('List', () => {
+  it('should render a table row for each panel', async () => {
+    renderComponent();
+
+    await waitForElementToBeRemoved(() => screen.queryByText(/loading/i));
+
+    const tableRows = screen.getAllByRole('row');
+
+    expect(tableRows).toHaveLength(6); // 5 rows (one per panel) plus header row
+
+    // Remove the header row.
+    const headerRow = tableRows.shift();
+
+    expect(headerRow.children.item(0)).toHaveTextContent(/id/i);
+    expect(headerRow.children.item(1)).toHaveTextContent(/section/i);
+    expect(headerRow.children.item(2)).toHaveTextContent(/row/i);
+    expect(headerRow.children.item(3)).toHaveTextContent(/column/i);
+    expect(headerRow.children.item(4)).toHaveTextContent(/material/i);
+    expect(headerRow.children.item(5)).toHaveTextContent(/year installed/i);
+    expect(headerRow.children.item(6)).toHaveTextContent(/is tracking\?/i);
+    expect(headerRow.children.item(7)).toHaveTextContent(/edit\?/i);
+    expect(headerRow.children.item(8)).toHaveTextContent(/delete\?/i);
+
+    // Now check that each of the panel rows contains the expected content...
+    tableRows.forEach((row, index) => {
+      expect(row.children.item(0)).toHaveTextContent(panels[index].id);
+      expect(row.children.item(1)).toHaveTextContent(panels[index].section);
+      expect(row.children.item(2)).toHaveTextContent(panels[index].row);
+      expect(row.children.item(3)).toHaveTextContent(panels[index].column);
+      expect(row.children.item(4)).toHaveTextContent(panels[index].material);
+      expect(row.children.item(5)).toHaveTextContent(
+        panels[index].yearInstalled
+      );
+      expect(row.children.item(6)).toHaveTextContent(
+        panels[index].tracking ? /yes/i : /no/i
+      );
+
+      const editLink = getByRole(row, 'link', { name: /edit/i });
+      expect(editLink).toBeInTheDocument();
+      expect(editLink).toHaveAttribute('href', `/edit/${panels[index].id}`);
+
+      const deleteLink = getByRole(row, 'link', { name: /delete/i });
+      expect(deleteLink).toBeInTheDocument();
+      expect(deleteLink).toHaveAttribute('href', `/delete/${panels[index].id}`);
+    });
+  });
+
+  it('should initially render a loading message', () => {
+    renderComponent();
+
+    const loading = screen.getByText(/loading/i);
+
+    expect(loading).toBeInTheDocument();
+  });
+
+  it('should render no records found message when panels are not returned from the API', async () => {
+    server.use(
+      rest.get('http://localhost:8080/api/solarpanel', (_req, res, ctx) => {
+        return res(ctx.json([]));
+      })
+    );
+
+    renderComponent();
+
+    const noPanelsMessage = await screen.findByText(/no panels to display/i);
+
+    expect(noPanelsMessage).toBeInTheDocument();
+  });
+});
+```
