@@ -5,6 +5,9 @@ import panels from './panels.json';
 const server = setupServer(
   rest.get('http://localhost:8080/api/solarpanel', (_req, res, ctx) => {
     return res(ctx.json(panels));
+  }),
+  rest.post('http://localhost:8080/api/solarpanel', (_req, res, ctx) => {
+    return res(ctx.status(201));
   })
 );
 
