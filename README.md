@@ -1013,3 +1013,629 @@ describe('List', () => {
   });
 });
 ```
+
+## React Testing Part 3
+
+### Testing a Component That Requires User Actions
+
+Next, we'll test the `Form` component. This will require us to program user interactions with the screen.
+
+We'll start with testing adding a panel, specifically that the component correctly updates form input element values.
+
+Before we add our new test file, let's add two request handlers to our mock server:
+
+**src/test/server.js**
+
+```js
+import { setupServer } from 'msw/node';
+import { rest } from 'msw';
+import panels from './panels.json';
+
+const BASE_URL = 'http://localhost:8080/api/solarpanel';
+
+const server = setupServer(
+  rest.get(BASE_URL, (_req, res, ctx) => {
+    return res(ctx.json(panels));
+  }),
+
+  // NEW!!! Handler to mock requests for a single panel
+  rest.get(`${BASE_URL}/:panelId`, (req, res, ctx) => {
+    const { panelId } = req.params;
+    const panel = panels.find((p) => p.panelId === parseInt(panelId, 10));
+    if (panel) {
+      return res(ctx.json(panel));
+    }
+    return res(ctx.status(404));
+  }),
+
+  // NEW!!! Handler to mock requests to create a panel
+  rest.post(BASE_URL, (_req, res, ctx) => {
+    return res(ctx.status(201));
+  })
+);
+
+export default server;
+```
+
+Then add a test file named `Form.test.js` with the following starter code:
+
+**src/components/Form.test.js**
+
+```js
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import server from '../test/server';
+
+import Form from './Form';
+
+function renderComponent() {
+  render(
+    <MemoryRouter>
+      <Form />
+    </MemoryRouter>
+  );
+}
+
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
+
+describe('Form', () => {
+  it('should update form input elements with the correct values', () => {
+    renderComponent();
+  });
+});
+```
+
+Now that we've stubbed out our component test file, we can move onto seeing how we can use Testing Library to "click" the "Save" button in our `Form` component.
+
+Let's make sure we have React Testing Library and `user-event` version 14 installed, as the transition from 13.5 to 14 had some major updates.
+
+In your terminal, press `ctrl-c` or `q` to quit to stop the test runner. Run the following:
+
+```
+npm install @testing-library/react@14 @testing-library/user-event@14
+```
+
+Verify that the dependencies in your `package.json` have been updated. Run `npm test` again to restart the test runner.
+
+Import `userEvent`:
+
+```js
+import userEvent from '@testing-library/user-event';
+```
+
+Call the `userEvent.setup()` method to start a user session:
+
+```js
+const user = userEvent.setup();
+```
+
+The `user` object that's returned from `userEvent.setup()` provides a collection of methods that we can use to simulate user interactions with the screen, including typing into input elements and clicking submit buttons.
+
+Get a reference to the input element:
+
+```js
+const sectionInput = screen.getByLabelText(/section/i);
+```
+
+Then use the `user.click()` method to click on the section input element and the `user.keyboard()` method to type some text:
+
+```js
+await user.click(sectionInput);
+await user.keyboard('Test');
+```
+
+We can also use the `user.type()` method to do both of these things with one method call:
+
+```js
+await user.type(sectionInput, 'Test');
+```
+
+After typing some text into an input element, we can assert that the input element has the expected value:
+
+```js
+expect(sectionInput).toHaveValue('Test');
+```
+
+Now let's use `user` to type into each of the form input elements and check that each input element has the expected value:
+
+```js
+const sectionInput = screen.getByLabelText(/section/i);
+const rowInput = screen.getByLabelText(/row/i);
+const columnInput = screen.getByLabelText(/column/i);
+const materialSelect = screen.getByLabelText(/material/i);
+const yearInstalledInput = screen.getByLabelText(/year installed/i);
+const trackingInput = screen.getByLabelText(/tracking/i);
+
+await user.type(sectionInput, 'Test');
+await user.type(rowInput, '1');
+await user.type(columnInput, '2');
+await user.selectOptions(materialSelect, 'POLY_SI');
+await user.type(yearInstalledInput, '2000');
+await user.click(trackingInput);
+
+expect(sectionInput).toHaveValue('Test');
+expect(rowInput).toHaveValue(1);
+expect(columnInput).toHaveValue(2);
+expect(materialSelect).toHaveValue('POLY_SI');
+expect(yearInstalledInput).toHaveValue(2000);
+expect(trackingInput).toBeChecked();
+```
+
+Notice the differences between text inputs, selects, and checkboxes. Another interesting bit is that Jest's `toHaveValue()` method will parse number input element values to the `Number` type, so you need to pass a number to the `toHaveValue()` method, not a string.
+
+Here's the complete `Form.test.js` file at this point:
+
+**src/components/Form.test.js**
+
+```js
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import server from '../test/server';
+
+import Form from './Form';
+
+function renderComponent() {
+  render(
+    <MemoryRouter>
+      <Form />
+    </MemoryRouter>
+  );
+}
+
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
+
+describe('Form', () => {
+  it('should update form input elements with the correct values', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    const sectionInput = screen.getByLabelText(/section/i);
+    const rowInput = screen.getByLabelText(/row/i);
+    const columnInput = screen.getByLabelText(/column/i);
+    const materialSelect = screen.getByLabelText(/material/i);
+    const yearInstalledInput = screen.getByLabelText(/year installed/i);
+    const trackingInput = screen.getByLabelText(/tracking/i);
+
+    await user.type(sectionInput, 'Test');
+    await user.type(rowInput, '1');
+    await user.type(columnInput, '2');
+    await user.selectOptions(materialSelect, 'POLY_SI');
+    await user.type(yearInstalledInput, '2000');
+    await user.click(trackingInput);
+
+    expect(sectionInput).toHaveValue('Test');
+    expect(rowInput).toHaveValue(1);
+    expect(columnInput).toHaveValue(2);
+    expect(materialSelect).toHaveValue('POLY_SI');
+    expect(yearInstalledInput).toHaveValue(2000);
+    expect(trackingInput).toBeChecked();
+  });
+});
+```
+
+Now let's add a new test that checks that a complete, valid form submission is handled correctly.
+
+Update `renderComponent()` to accept the initial route and render routes for add, update, and list:
+
+```js
+function renderComponent(route) {
+  render(
+    <MemoryRouter initialEntries={[route]}>
+      <Routes>
+        <Route path="/add" element={<Form />} />
+        <Route path="/edit/:id" element={<Form />} />
+        <Route path="/list" element={<List />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+```
+
+Then update the `renderComponent()` function calls:
+
+```js
+renderComponent('/add');
+```
+
+And let's define a `fillForm()` helper function to help keep our code DRY:
+
+```js
+async function fillForm(
+  user,
+  section,
+  row,
+  column,
+  material,
+  yearInstalled,
+  isTracking,
+  expectValues = true
+) {
+  const sectionInput = screen.getByLabelText(/section/i);
+  const rowInput = screen.getByLabelText(/row/i);
+  const columnInput = screen.getByLabelText(/column/i);
+  const materialSelect = screen.getByLabelText(/material/i);
+  const yearInstalledInput = screen.getByLabelText(/year installed/i);
+  const trackingInput = screen.getByLabelText(/tracking/i);
+
+  await user.type(sectionInput, section);
+  await user.type(rowInput, `${row}`);
+  await user.type(columnInput, `${column}`);
+  await user.selectOptions(materialSelect, material);
+  await user.type(yearInstalledInput, `${yearInstalled}`);
+  if (isTracking) {
+    await user.click(trackingInput);
+  }
+
+  if (expectValues) {
+    expect(sectionInput).toHaveValue(section);
+    expect(rowInput).toHaveValue(row);
+    expect(columnInput).toHaveValue(column);
+    expect(materialSelect).toHaveValue(material);
+    expect(yearInstalledInput).toHaveValue(yearInstalled);
+    if (isTracking) {
+      expect(trackingCheckBox).toBeChecked();
+    } else {
+      expect(trackingCheckBox).not.toBeChecked();
+    }
+  }
+
+  return {
+    sectionInput,
+    rowInput,
+    columnInput,
+    materialSelect,
+    yearInstalledInput,
+    trackingCheckBox,
+  };
+}
+```
+
+Here's the complete `Form.test.js` file with our second test stubbed out:
+
+**src/components/Form.test.js**
+
+```js
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import server from '../test/server';
+
+import Form from './Form';
+import List from './List';
+
+function renderComponent(route) {
+  render(
+    <MemoryRouter initialEntries={[route]}>
+      <Routes>
+        <Route path="/add" element={<Form />} />
+        <Route path="/edit/:id" element={<Form />} />
+        <Route path="/list" element={<List />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
+async function fillForm(
+  user,
+  section,
+  row,
+  column,
+  material,
+  yearInstalled,
+  isTracking,
+  expectValues = true
+) {
+  const sectionInput = screen.getByLabelText(/section/i);
+  const rowInput = screen.getByLabelText(/row/i);
+  const columnInput = screen.getByLabelText(/column/i);
+  const materialSelect = screen.getByLabelText(/material/i);
+  const yearInstalledInput = screen.getByLabelText(/year installed/i);
+  const trackingInput = screen.getByLabelText(/tracking/i);
+
+  await user.type(sectionInput, section);
+  await user.type(rowInput, `${row}`);
+  await user.type(columnInput, `${column}`);
+  await user.selectOptions(materialSelect, material);
+  await user.type(yearInstalledInput, `${yearInstalled}`);
+  if (isTracking) {
+    await user.click(trackingInput);
+  }
+
+  if (expectValues) {
+    expect(sectionInput).toHaveValue(section);
+    expect(rowInput).toHaveValue(row);
+    expect(columnInput).toHaveValue(column);
+    expect(materialSelect).toHaveValue(material);
+    expect(yearInstalledInput).toHaveValue(yearInstalled);
+    if (isTracking) {
+      expect(trackingCheckBox).toBeChecked();
+    } else {
+      expect(trackingCheckBox).not.toBeChecked();
+    }
+  }
+
+  return {
+    sectionInput,
+    rowInput,
+    columnInput,
+    materialSelect,
+    yearInstalledInput,
+    trackingCheckBox,
+  };
+}
+
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
+
+describe('Form', () => {
+  it('should update form input elements with the correct values', async () => {
+    const user = userEvent.setup();
+    renderComponent('/add');
+
+    await fillForm(user, 'Test', 1, 2, 'POLY_SI', 2000, true);
+  });
+
+  it('should redirect the user to the list page after successful form submission', async () => {
+    const user = userEvent.setup();
+    renderComponent('/add');
+
+    await fillForm(user, 'Test', 1, 2, 'POLY_SI', 2000, true);
+
+    // TODO finish test...
+  });
+});
+```
+
+To submit the form, we need to query for the submit button and click it:
+
+```js
+const submitButton = screen.getByRole('button', { name: /save/i });
+await user.click(submitButton);
+```
+
+Our test is passing, but we still need to check if the user is redirected to the list page.
+
+Since we don't have headings on our pages that we could look for, let's update our `renderComponent()` function so that we have access to the current location pathname.
+
+Import `useLocation` from `react-router-dom`, define a `LocationDisplay` component, and render that component within `renderComponent()`:
+
+```js
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { useLocation, MemoryRouter, Routes, Route } from 'react-router-dom';
+import server from '../test/server';
+
+import Form from './Form';
+import List from './List';
+
+function LocationDisplay() {
+  const location = useLocation();
+  return <div data-testid="location-display">{location.pathname}</div>;
+}
+
+function renderComponent(route) {
+  render(
+    <MemoryRouter initialEntries={[route]}>
+      <Routes>
+        <Route path="/add" element={<Form />} />
+        <Route path="/edit/:id" element={<Form />} />
+        <Route path="/list" element={<List />} />
+      </Routes>
+      <LocationDisplay />
+    </MemoryRouter>
+  );
+}
+```
+
+Now within our test, we can wait for the form to not be in the document, then get use the `screen.getByTestId()` function to get the `<div>` element that contains the current location pathname:
+
+```js
+it('should redirect the user to the list page after successful form submission', async () => {
+  const user = userEvent.setup();
+  renderComponent('/add');
+
+  await fillForm(user, 'Test', 1, 2, 'POLY_SI', 2000, true);
+
+  const submitButton = screen.getByRole('button', { name: /save/i });
+  await user.click(submitButton);
+
+  await waitFor(() => {
+    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+  });
+
+  expect(screen.getByTestId('location-display')).toHaveTextContent('/list');
+});
+```
+
+Excellent! Now we have our second `Form` component test passing.
+
+Is it possible to check if the form state is reset after submitting the form? Yes!
+
+First, import `Link` from `react-router-dom` and add a link to the `renderComponent()` function:
+
+```js
+function renderComponent(route) {
+  render(
+    <MemoryRouter initialEntries={[route]}>
+      <Link to="/add">Add</Link>
+      <Routes>
+        <Route path="/add" element={<Form />} />
+        <Route path="/edit/:id" element={<Form />} />
+        <Route path="/list" element={<List />} />
+      </Routes>
+      <LocationDisplay />
+    </MemoryRouter>
+  );
+}
+```
+
+After confirming that the user is now viewing the list page, we can click the "Add" link and then assert that all of the form fields are back to their default values:
+
+```js
+await user.click(screen.getByRole('link', { name: /add/i }));
+
+expect(screen.getByLabelText(/section/i)).toHaveValue('');
+expect(screen.getByLabelText(/row/i)).toHaveValue(null);
+expect(screen.getByLabelText(/column/i)).toHaveValue(null);
+expect(screen.getByLabelText(/material/i)).toHaveValue('POLY_SI');
+expect(screen.getByLabelText(/year installed/i)).toHaveValue(null);
+expect(screen.getByLabelText(/tracking/i)).not.toBeChecked();
+```
+
+Here's the complete `Form.test.js` file:
+
+**src/components/Form.test.js**
+
+```js
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {
+  useLocation,
+  Link,
+  MemoryRouter,
+  Routes,
+  Route,
+} from 'react-router-dom';
+import server from '../test/server';
+
+import Form from './Form';
+import List from './List';
+
+function LocationDisplay() {
+  const location = useLocation();
+  return <div data-testid="location-display">{location.pathname}</div>;
+}
+
+function renderComponent(route) {
+  render(
+    <MemoryRouter initialEntries={[route]}>
+      <Link to="/add">Add</Link>
+      <Routes>
+        <Route path="/add" element={<Form />} />
+        <Route path="/edit/:id" element={<Form />} />
+        <Route path="/list" element={<List />} />
+      </Routes>
+      <LocationDisplay />
+    </MemoryRouter>
+  );
+}
+
+async function fillForm(
+  user,
+  section,
+  row,
+  column,
+  material,
+  yearInstalled,
+  isTracking,
+  expectValues = true
+) {
+  const sectionInput = screen.getByLabelText(/section/i);
+  const rowInput = screen.getByLabelText(/row/i);
+  const columnInput = screen.getByLabelText(/column/i);
+  const materialSelect = screen.getByLabelText(/material/i);
+  const yearInstalledInput = screen.getByLabelText(/year installed/i);
+  const trackingInput = screen.getByLabelText(/tracking/i);
+
+  await user.type(sectionInput, section);
+  await user.type(rowInput, `${row}`);
+  await user.type(columnInput, `${column}`);
+  await user.selectOptions(materialSelect, material);
+  await user.type(yearInstalledInput, `${yearInstalled}`);
+  if (isTracking) {
+    await user.click(trackingInput);
+  }
+
+  if (expectValues) {
+    expect(sectionInput).toHaveValue(section);
+    expect(rowInput).toHaveValue(row);
+    expect(columnInput).toHaveValue(column);
+    expect(materialSelect).toHaveValue(material);
+    expect(yearInstalledInput).toHaveValue(yearInstalled);
+    if (isTracking) {
+      expect(trackingCheckBox).toBeChecked();
+    } else {
+      expect(trackingCheckBox).not.toBeChecked();
+    }
+  }
+
+  return {
+    sectionInput,
+    rowInput,
+    columnInput,
+    materialSelect,
+    yearInstalledInput,
+    trackingCheckBox,
+  };
+}
+
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
+
+describe('Form', () => {
+  it('should update form input elements with the correct values', async () => {
+    const user = userEvent.setup();
+    renderComponent('/add');
+
+    await fillForm(user, 'Test', 1, 2, 'POLY_SI', 2000, true);
+  });
+
+  it('should redirect the user to the list page after successful form submission', async () => {
+    const user = userEvent.setup();
+    renderComponent('/add');
+
+    await fillForm(user, 'Test', 1, 2, 'POLY_SI', 2000, true);
+
+    const submitButton = screen.getByRole('button', { name: /save/i });
+
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('form')).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('location-display')).toHaveTextContent('/list');
+
+    await user.click(screen.getByRole('link', { name: /add/i }));
+
+    expect(screen.getByLabelText(/section/i)).toHaveValue('');
+    expect(screen.getByLabelText(/row/i)).toHaveValue(null);
+    expect(screen.getByLabelText(/column/i)).toHaveValue(null);
+    expect(screen.getByLabelText(/material/i)).toHaveValue('POLY_SI');
+    expect(screen.getByLabelText(/year installed/i)).toHaveValue(null);
+    expect(screen.getByLabelText(/tracking/i)).not.toBeChecked();
+  });
+});
+```
+
+### Next Steps or Things to Try On Your Own
+
+_Try fleshing out the `Form` component tests..._
+
+* Add a new test that checks that a cancel link is present and has the expected path
+
+* Test unhappy paths...
+  * 400 response... does the component display API validation messages?
+  * 500 response on POST... our code doesn't handle this scenario... but it should
+
+* Test updating a panel...
+  * Test that the panel loads the panel into the form correctly
+  * Test that an update can be completed successfully
+  * 404 response when loading the panel... our code doesn't handle this scenario... but it should
+
+_Try testing the `ConfirmDelete` component..._
