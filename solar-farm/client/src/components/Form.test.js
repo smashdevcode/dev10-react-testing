@@ -1,5 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
-// import { rest } from 'msw';
+import {
+  render,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useLocation, MemoryRouter, Routes, Route } from 'react-router-dom';
 import server from '../test/server';
@@ -107,5 +111,7 @@ describe('Form', () => {
     });
 
     expect(screen.getByTestId('location-display')).toHaveTextContent('/list');
+
+    await waitForElementToBeRemoved(() => screen.queryByText(/loading/i));
   });
 });
