@@ -1639,3 +1639,59 @@ _Try fleshing out the `Form` component tests..._
   * 404 response when loading the panel... our code doesn't handle this scenario... but it should
 
 _Try testing the `ConfirmDelete` component..._
+
+### Testing Error
+
+Remember when I was getting `TypeError: Cannot read properties of null (reading '_location')` warnings/errors running my form tests?
+
+After some experimentation and debugging I was able to determine why this was happening.
+
+The form test that was causing the issue was this test:
+
+```js
+it('should redirect the user to the list page after successful form submission', async () => {
+  const user = userEvent.setup();
+
+  renderComponent('/add');
+
+  await fillForm(user, 'Test', 1, 2, 'POLY_SI', 2000, true);
+
+  const submitButton = screen.getByRole('button', { name: /save/i });
+  await user.click(submitButton);
+
+  await waitFor(() => {
+    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+  });
+
+  expect(screen.getByTestId('location-display')).toHaveTextContent('/list');
+});
+```
+
+Clicking the form submit button results in a POST request being sent to the mock server. After the mock server returns a 201 response, the user is redirected to the solar panels list page. When the `List` component loads, it makes a GET request to the mock server. The `TypeError: Cannot read properties of null (reading '_location')` warning/error is the result of the test exiting before the GET request completes and the `List` component state is updated. If we use the `waitForElementToBeRemoved()` method to detect when the `List` component's "loading..." message has been removed from the DOM, then we can ensure that all asynchronous processes have completed before our test exits.
+
+Here's what the fixed test looks like (there's just one more line of code added to the end):
+
+```js
+it('should redirect the user to the list page after successful form submission', async () => {
+  const user = userEvent.setup();
+
+  renderComponent('/add');
+
+  await fillForm(user, 'Test', 1, 2, 'POLY_SI', 2000, true);
+
+  const submitButton = screen.getByRole('button', { name: /save/i });
+  await user.click(submitButton);
+
+  await waitFor(() => {
+    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+  });
+
+  expect(screen.getByTestId('location-display')).toHaveTextContent('/list');
+
+  await waitForElementToBeRemoved(() => screen.queryByText(/loading/i));
+});
+```
+
+With that change in place, every run of tests finishes without any errors or warnings.
+
+The takeaway here is to be extra careful to allow all asynchronous processes to complete within your tests.
